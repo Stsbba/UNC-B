@@ -1,0 +1,172 @@
+-- Create the center dot and circle
+local player = game.Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui") -- Access the Player's GUI
+
+-- Create a ScreenGui to hold the dot and circle
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "CenterDotGui"
+screenGui.ResetOnSpawn = false -- Ensures the GUI persists after respawning
+screenGui.Parent = playerGui
+
+-- Create the dot
+local dot = Instance.new("Frame")
+dot.Name = "CenterDot"
+dot.Size = UDim2.new(0, 8, 0, 8) -- Size of the dot (8x8 pixels)
+dot.Position = UDim2.new(0.5, -4, 0.5, -33) -- Default position slightly higher
+dot.BackgroundColor3 = Color3.new(1, 1, 1) -- White dot
+dot.BorderSizePixel = 0 -- No border
+dot.Parent = screenGui
+
+-- Create the circle around the dot
+local circle = Instance.new("Frame")
+circle.Name = "LockOnCircle"
+circle.Size = UDim2.new(0, 200, 0, 200) -- Circle size (200x200 pixels)
+circle.Position = UDim2.new(0.5, -100, 0.5, -133) -- Centered around the dot
+circle.BackgroundTransparency = 1 -- Fully transparent background
+circle.BorderSizePixel = 0 -- No border
+circle.Parent = screenGui
+
+-- Add an ImageLabel to display the circular graphic
+local circleImage = Instance.new("ImageLabel")
+circleImage.Size = UDim2.new(1, 0, 1, 0)
+circleImage.Position = UDim2.new(0, 0, 0, 0)
+circleImage.BackgroundTransparency = 1 -- Fully transparent background
+circleImage.Image = "rbxassetid://200182847" -- Circular border image
+circleImage.ImageColor3 = Color3.new(1, 1, 1) -- White circle
+circleImage.ImageTransparency = 0.5 -- Semi-transparent circle
+circleImage.Parent = circle
+
+-- Create a Slider to adjust the lock-on distance
+local sliderFrame = Instance.new("Frame")
+sliderFrame.Size = UDim2.new(0, 200, 0, 50)
+sliderFrame.Position = UDim2.new(1, -270, 0.5, -25) -- Positioned slightly to the left
+sliderFrame.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
+sliderFrame.BorderSizePixel = 0
+sliderFrame.Parent = screenGui
+
+local sliderBar = Instance.new("Frame")
+sliderBar.Size = UDim2.new(1, 0, 0, 10)
+sliderBar.Position = UDim2.new(0, 0, 0.5, -5)
+sliderBar.BackgroundColor3 = Color3.new(1, 1, 1)
+sliderBar.BorderSizePixel = 0
+sliderBar.Parent = sliderFrame
+
+local sliderButton = Instance.new("Frame")
+sliderButton.Size = UDim2.new(0, 10, 0, 20)
+sliderButton.Position = UDim2.new(0, 0, 0, -5)
+sliderButton.BackgroundColor3 = Color3.new(0, 0, 0)
+sliderButton.BorderSizePixel = 0
+sliderButton.Parent = sliderBar
+
+-- Display the value of the slider directly above the slider
+local sliderValueText = Instance.new("TextLabel")
+sliderValueText.Size = UDim2.new(0, 100, 0, 25)
+sliderValueText.Position = UDim2.new(0.5, -50, 0, -25) -- Centered directly above the slider
+sliderValueText.Text = "100 studs"
+sliderValueText.BackgroundTransparency = 1
+sliderValueText.TextColor3 = Color3.new(1, 1, 1)
+sliderValueText.TextSize = 14
+sliderValueText.Parent = sliderFrame
+
+local maxDistance = 200 -- Maximum distance for the lock-on range in studs
+local minDistance = 0   -- Minimum distance for the lock-on range in studs
+local currentDistance = 100 -- Initial distance set to 100 studs
+
+-- Update the slider value and lock-on range
+local dragging = false
+
+sliderButton.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+    end
+end)
+
+sliderButton.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = false
+    end
+end)
+
+game:GetService("UserInputService").InputChanged:Connect(function(input)
+    if dragging then
+        -- Ensure the slider button stays within the slider's boundaries
+        local newX = math.clamp(input.Position.X - sliderFrame.AbsolutePosition.X, 0, sliderFrame.AbsoluteSize.X - sliderButton.AbsoluteSize.X)
+        sliderButton.Position = UDim2.new(0, newX, 0, -5)
+
+        -- Calculate the distance based on the slider position
+        local percentage = newX / (sliderFrame.AbsoluteSize.X - sliderButton.AbsoluteSize.X)
+        currentDistance = minDistance + (maxDistance - minDistance) * percentage
+
+        -- Update the displayed slider value
+        sliderValueText.Text = math.round(currentDistance) .. " studs"
+    end
+end)
+
+-- Function to find the nearest enemy player within the circle's radius
+local function getNearestEnemy()
+    local closestPlayer = nil
+    local closestDistance = currentDistance -- Use the slider's distance as the maximum distance
+
+    for _, otherPlayer in pairs(game.Players:GetPlayers()) do
+        if otherPlayer ~= player 
+        and otherPlayer.Character 
+        and otherPlayer.Character:FindFirstChild("Head") 
+        and otherPlayer.Character:FindFirstChild("Humanoid") then
+            local head = otherPlayer.Character.Head
+            local humanoid = otherPlayer.Character.Humanoid
+
+            -- Only target live players who are not on the same team
+            if humanoid.Health > 0 and (not player.Team or player.Team ~= otherPlayer.Team) then
+                local screenPoint, onScreen = workspace.CurrentCamera:WorldToScreenPoint(head.Position)
+                local centerX, centerY = workspace.CurrentCamera.ViewportSize.X / 2, workspace.CurrentCamera.ViewportSize.Y / 2
+
+                -- Calculate the distance from the center dot to the player's head in pixels
+                local distanceFromCenter = ((screenPoint.X - centerX)^2 + (screenPoint.Y - centerY)^2)^0.5
+
+                -- Check if the player is within the circle's radius
+                if onScreen and distanceFromCenter <= 100 then -- Circle radius is 100 pixels
+                    local distanceInStuds = (head.Position - player.Character.Head.Position).Magnitude
+                    if distanceInStuds < closestDistance then
+                        closestPlayer = otherPlayer
+                        closestDistance = distanceInStuds
+                    end
+                end
+            end
+        end
+    end
+
+    return closestPlayer
+end
+
+-- Continuously lock the camera to the nearest enemy's head (if within range and inside the circle)
+game:GetService("RunService").RenderStepped:Connect(function()
+    if player.Character and player.Character:FindFirstChild("Head") then
+        local nearestEnemy = getNearestEnemy()
+
+        -- Check if there is a valid enemy in range
+        if nearestEnemy and nearestEnemy.Character and nearestEnemy.Character:FindFirstChild("Head") then
+            local enemyHead = nearestEnemy.Character.Head
+
+            -- Rotate the camera and character to face the enemy's head
+            local currentCamera = workspace.CurrentCamera
+            local lookAtPosition = enemyHead.Position
+
+            -- Smoothly transition the camera to face the enemy's head
+            currentCamera.CFrame = CFrame.new(currentCamera.CFrame.Position, lookAtPosition)
+
+            -- Rotate the character smoothly
+            local characterRoot = player.Character:FindFirstChild("HumanoidRootPart")
+            if characterRoot then
+                local directionToEnemy = (lookAtPosition - characterRoot.Position).unit
+                local distanceToEnemy = (lookAtPosition - characterRoot.Position).Magnitude
+
+                -- Keep a safe distance to prevent glitches
+                if distanceToEnemy > 3 then -- 3 studs minimum distance
+                    -- Smoothly rotate the character without forcing a position
+                    local newCFrame = CFrame.new(characterRoot.Position, characterRoot.Position + directionToEnemy)
+                    characterRoot.CFrame = CFrame.new(characterRoot.Position) * CFrame.Angles(0, newCFrame.LookVector:ToOrientation(), 0)
+                end
+            end
+        end
+    end
+end)
