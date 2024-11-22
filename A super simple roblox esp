@@ -1,0 +1,86 @@
+-- X-Ray Vision Script with Smooth and Slow Rainbow Colors
+local xrayEnabled = false -- Toggle for X-Ray
+local rainbowSpeed = 0.2 -- Slower speed of the rainbow color change
+
+-- Function to create a rainbow effect
+local function getRainbowColor(t)
+    local hue = (t * rainbowSpeed) % 1 -- Cycle hue over time at a slower pace
+    return Color3.fromHSV(hue, 1, 1) -- Full saturation and brightness
+end
+
+-- Function to add highlight to a character
+local function addHighlightToCharacter(character)
+    if not character then return end
+    local highlight = character:FindFirstChild("Highlight")
+    if not highlight then
+        highlight = Instance.new("Highlight")
+        highlight.FillTransparency = 0.5
+        highlight.OutlineTransparency = 1
+        highlight.Parent = character
+    end
+end
+
+-- Function to toggle X-ray for all players
+local function toggleXray(enable)
+    xrayEnabled = enable
+
+    if enable then
+        -- Apply highlights to all current players
+        for _, player in pairs(game.Players:GetPlayers()) do
+            if player ~= game.Players.LocalPlayer and player.Character then
+                addHighlightToCharacter(player.Character)
+            end
+        end
+    else
+        -- Remove highlights from all players
+        for _, player in pairs(game.Players:GetPlayers()) do
+            if player.Character then
+                local highlight = player.Character:FindFirstChild("Highlight")
+                if highlight then
+                    highlight:Destroy()
+                end
+            end
+        end
+    end
+end
+
+-- Update the highlight color for all players continuously
+game:GetService("RunService").RenderStepped:Connect(function()
+    if xrayEnabled then
+        local rainbowColor = getRainbowColor(tick()) -- Smooth color change
+        for _, player in pairs(game.Players:GetPlayers()) do
+            if player.Character then
+                local highlight = player.Character:FindFirstChild("Highlight")
+                if highlight then
+                    highlight.FillColor = rainbowColor
+                end
+            end
+        end
+    end
+end)
+
+-- Automatically add highlights to new players/characters
+game.Players.PlayerAdded:Connect(function(player)
+    player.CharacterAdded:Connect(function(character)
+        if xrayEnabled then
+            addHighlightToCharacter(character)
+        end
+    end)
+end)
+
+-- Add highlights to existing players if they respawn
+for _, player in pairs(game.Players:GetPlayers()) do
+    player.CharacterAdded:Connect(function(character)
+        if xrayEnabled then
+            addHighlightToCharacter(character)
+        end
+    end)
+end
+
+-- Keybind to toggle X-Ray Vision
+game:GetService("UserInputService").InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.KeyCode == Enum.KeyCode.X then -- Press 'X' to toggle X-ray
+        toggleXray(not xrayEnabled)
+    end
+end)
