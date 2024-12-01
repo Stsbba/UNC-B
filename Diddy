@@ -41,7 +41,7 @@ circleImage.Position = UDim2.new(0, 0, 0, 0)
 circleImage.BackgroundTransparency = 1 -- Fully transparent background
 circleImage.Image = "rbxassetid://200182847" -- Circular border image
 circleImage.ImageColor3 = Color3.new(1, 1, 1) -- White circle
-circleImage.ImageTransparency = 0.7 -- Semi-transparent circle
+circleImage.ImageTransparency = 1 -- Semi-transparent circle
 circleImage.Parent = circle
 
 -- Create a Slider to adjust the lock-on distance
