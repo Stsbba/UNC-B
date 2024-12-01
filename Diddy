@@ -8,6 +8,13 @@ screenGui.Name = "CenterDotGui"
 screenGui.ResetOnSpawn = false -- Ensures the GUI persists after respawning
 screenGui.Parent = playerGui
 
+local StarterGui = game:GetService("StarterGui")
+StarterGui:SetCore("SendNotification", {
+    Title = "Welcome!";
+    Text = "Hello Nigga, press X to activate ESP";
+    Duration = 5; -- Duration in seconds
+})
+
 -- Create the dot
 local dot = Instance.new("Frame")
 dot.Name = "CenterDot"
