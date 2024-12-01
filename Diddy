@@ -8,6 +8,7 @@ screenGui.Name = "CenterDotGui"
 screenGui.ResetOnSpawn = false -- Ensures the GUI persists after respawning
 screenGui.Parent = playerGui
 
+-- Notification :)))
 local StarterGui = game:GetService("StarterGui")
 StarterGui:SetCore("SendNotification", {
     Title = "Welcome!";
